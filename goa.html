@@ -1,0 +1,857 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Mehhh Goa Trip Splitter</title>
+    <script crossorigin src="https://unpkg.com/react@18/umd/react.production.min.js"></script>
+    <script crossorigin src="https://unpkg.com/react-dom@18/umd/react-dom.production.min.js"></script>
+    <script src="https://unpkg.com/@babel/standalone/babel.min.js"></script>
+    <link href="https://fonts.googleapis.com/css2?family=Righteous&family=Outfit:wght@300;400;600;700&display=swap" rel="stylesheet">
+    <script src="https://cdn.tailwindcss.com"></script>
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+
+        body {
+            font-family: 'Outfit', sans-serif;
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 50%, #f093fb 100%);
+            min-height: 100vh;
+            position: relative;
+            overflow-x: hidden;
+        }
+
+        body::before {
+            content: '';
+            position: fixed;
+            top: 0;
+            left: 0;
+            right: 0;
+            bottom: 0;
+            background: 
+                radial-gradient(circle at 20% 50%, rgba(255, 255, 255, 0.1) 0%, transparent 50%),
+                radial-gradient(circle at 80% 80%, rgba(255, 255, 255, 0.1) 0%, transparent 50%);
+            pointer-events: none;
+            z-index: 1;
+        }
+
+        .app-container {
+            position: relative;
+            z-index: 2;
+        }
+
+        .logo-text {
+            font-family: 'Righteous', cursive;
+            font-size: 2.5rem;
+            background: linear-gradient(135deg, #fff 0%, #ffd89b 100%);
+            -webkit-background-clip: text;
+            -webkit-text-fill-color: transparent;
+            background-clip: text;
+            text-shadow: 0 4px 20px rgba(255, 255, 255, 0.3);
+            letter-spacing: 1px;
+        }
+
+        .card {
+            background: rgba(255, 255, 255, 0.95);
+            backdrop-filter: blur(10px);
+            border-radius: 24px;
+            box-shadow: 0 20px 60px rgba(0, 0, 0, 0.3);
+            border: 1px solid rgba(255, 255, 255, 0.5);
+        }
+
+        .btn-primary {
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            color: white;
+            padding: 12px 24px;
+            border-radius: 12px;
+            border: none;
+            font-weight: 600;
+            cursor: pointer;
+            transition: all 0.3s ease;
+            box-shadow: 0 4px 15px rgba(102, 126, 234, 0.4);
+        }
+
+        .btn-primary:hover {
+            transform: translateY(-2px);
+            box-shadow: 0 6px 20px rgba(102, 126, 234, 0.6);
+        }
+
+        .btn-secondary {
+            background: linear-gradient(135deg, #f093fb 0%, #f5576c 100%);
+            color: white;
+            padding: 10px 20px;
+            border-radius: 10px;
+            border: none;
+            font-weight: 600;
+            cursor: pointer;
+            transition: all 0.3s ease;
+            box-shadow: 0 4px 15px rgba(240, 147, 251, 0.4);
+        }
+
+        .btn-secondary:hover {
+            transform: translateY(-2px);
+            box-shadow: 0 6px 20px rgba(240, 147, 251, 0.6);
+        }
+
+        .btn-danger {
+            background: #ef4444;
+            color: white;
+            padding: 8px 16px;
+            border-radius: 8px;
+            border: none;
+            font-weight: 600;
+            cursor: pointer;
+            transition: all 0.3s ease;
+        }
+
+        .btn-danger:hover {
+            background: #dc2626;
+            transform: translateY(-1px);
+        }
+
+        .input-field {
+            width: 100%;
+            padding: 12px 16px;
+            border: 2px solid rgba(102, 126, 234, 0.2);
+            border-radius: 12px;
+            font-size: 1rem;
+            transition: all 0.3s ease;
+            font-family: 'Outfit', sans-serif;
+        }
+
+        .input-field:focus {
+            outline: none;
+            border-color: #667eea;
+            box-shadow: 0 0 0 4px rgba(102, 126, 234, 0.1);
+        }
+
+        .user-chip {
+            display: inline-flex;
+            align-items: center;
+            gap: 8px;
+            padding: 8px 16px;
+            border-radius: 20px;
+            font-weight: 600;
+            color: white;
+            animation: slideIn 0.3s ease;
+        }
+
+        @keyframes slideIn {
+            from {
+                opacity: 0;
+                transform: translateY(-10px);
+            }
+            to {
+                opacity: 1;
+                transform: translateY(0);
+            }
+        }
+
+        @keyframes fadeIn {
+            from {
+                opacity: 0;
+                transform: scale(0.95);
+            }
+            to {
+                opacity: 1;
+                transform: scale(1);
+            }
+        }
+
+        .expense-item {
+            animation: fadeIn 0.3s ease;
+        }
+
+        .balance-positive {
+            color: #10b981;
+            font-weight: 700;
+        }
+
+        .balance-negative {
+            color: #ef4444;
+            font-weight: 700;
+        }
+
+        .balance-zero {
+            color: #6b7280;
+            font-weight: 600;
+        }
+
+        .settlement-card {
+            background: linear-gradient(135deg, rgba(16, 185, 129, 0.1) 0%, rgba(5, 150, 105, 0.1) 100%);
+            border-left: 4px solid #10b981;
+            padding: 16px;
+            border-radius: 12px;
+            margin-bottom: 12px;
+            animation: fadeIn 0.3s ease;
+        }
+
+        .checkbox-custom {
+            width: 20px;
+            height: 20px;
+            cursor: pointer;
+            accent-color: #667eea;
+        }
+
+        .stat-card {
+            text-align: center;
+            padding: 20px;
+            background: linear-gradient(135deg, rgba(102, 126, 234, 0.1) 0%, rgba(118, 75, 162, 0.1) 100%);
+            border-radius: 16px;
+            border: 2px solid rgba(102, 126, 234, 0.2);
+        }
+
+        .stat-number {
+            font-size: 2rem;
+            font-weight: 700;
+            color: #667eea;
+            margin-bottom: 4px;
+        }
+
+        .stat-label {
+            font-size: 0.875rem;
+            color: #6b7280;
+            font-weight: 600;
+        }
+
+        .tab-button {
+            padding: 12px 24px;
+            border: none;
+            background: transparent;
+            color: rgba(255, 255, 255, 0.7);
+            font-weight: 600;
+            cursor: pointer;
+            border-bottom: 3px solid transparent;
+            transition: all 0.3s ease;
+            font-size: 1rem;
+        }
+
+        .tab-button.active {
+            color: white;
+            border-bottom-color: #ffd89b;
+        }
+
+        .tab-button:hover {
+            color: white;
+        }
+
+        select.input-field {
+            cursor: pointer;
+        }
+
+        .modal-overlay {
+            position: fixed;
+            top: 0;
+            left: 0;
+            right: 0;
+            bottom: 0;
+            background: rgba(0, 0, 0, 0.5);
+            backdrop-filter: blur(4px);
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            z-index: 1000;
+            animation: fadeIn 0.2s ease;
+        }
+
+        .modal-content {
+            background: white;
+            border-radius: 24px;
+            padding: 32px;
+            max-width: 500px;
+            width: 90%;
+            max-height: 90vh;
+            overflow-y: auto;
+            animation: slideIn 0.3s ease;
+        }
+
+        @media (max-width: 768px) {
+            .logo-text {
+                font-size: 2rem;
+            }
+            
+            .stat-number {
+                font-size: 1.5rem;
+            }
+        }
+    </style>
+</head>
+<body>
+    <div id="root"></div>
+
+    <script type="text/babel">
+        const { useState, useEffect } = React;
+
+        const COLORS = [
+            '#667eea', '#764ba2', '#f093fb', '#f5576c', '#4facfe',
+            '#00f2fe', '#43e97b', '#38f9d7', '#fa709a', '#fee140',
+            '#30cfd0', '#330867', '#a8edea', '#fed6e3'
+        ];
+
+        function GoaTripSplitter() {
+            const [users, setUsers] = useState([]);
+            const [expenses, setExpenses] = useState([]);
+            const [newUserName, setNewUserName] = useState('');
+            const [activeTab, setActiveTab] = useState('dashboard');
+            const [showExpenseModal, setShowExpenseModal] = useState(false);
+            
+            // Expense form state
+            const [expenseDescription, setExpenseDescription] = useState('');
+            const [expenseAmount, setExpenseAmount] = useState('');
+            const [expensePaidBy, setExpensePaidBy] = useState('');
+            const [expenseSplitBetween, setExpenseSplitBetween] = useState([]);
+
+            // Load data from localStorage
+            useEffect(() => {
+                const savedUsers = localStorage.getItem('goaTripUsers');
+                const savedExpenses = localStorage.getItem('goaTripExpenses');
+                
+                if (savedUsers) setUsers(JSON.parse(savedUsers));
+                if (savedExpenses) setExpenses(JSON.parse(savedExpenses));
+            }, []);
+
+            // Save users to localStorage
+            useEffect(() => {
+                if (users.length > 0) {
+                    localStorage.setItem('goaTripUsers', JSON.stringify(users));
+                }
+            }, [users]);
+
+            // Save expenses to localStorage
+            useEffect(() => {
+                if (expenses.length > 0) {
+                    localStorage.setItem('goaTripExpenses', JSON.stringify(expenses));
+                }
+            }, [expenses]);
+
+            const addUser = () => {
+                if (newUserName.trim()) {
+                    const newUser = {
+                        id: Date.now(),
+                        name: newUserName.trim(),
+                        color: COLORS[users.length % COLORS.length]
+                    };
+                    setUsers([...users, newUser]);
+                    setNewUserName('');
+                }
+            };
+
+            const removeUser = (userId) => {
+                if (confirm('Remove this user? Their expenses will remain but you won\'t be able to add new expenses for them.')) {
+                    setUsers(users.filter(u => u.id !== userId));
+                }
+            };
+
+            const openExpenseModal = () => {
+                setExpenseDescription('');
+                setExpenseAmount('');
+                setExpensePaidBy('');
+                setExpenseSplitBetween([]);
+                setShowExpenseModal(true);
+            };
+
+            const addExpense = () => {
+                if (!expenseDescription.trim() || !expenseAmount || !expensePaidBy || expenseSplitBetween.length === 0) {
+                    alert('Please fill in all fields');
+                    return;
+                }
+
+                const newExpense = {
+                    id: Date.now(),
+                    description: expenseDescription.trim(),
+                    amount: parseFloat(expenseAmount),
+                    paidBy: expensePaidBy,
+                    splitBetween: expenseSplitBetween,
+                    date: new Date().toISOString()
+                };
+
+                setExpenses([...expenses, newExpense]);
+                setShowExpenseModal(false);
+            };
+
+            const deleteExpense = (expenseId) => {
+                if (confirm('Delete this expense?')) {
+                    setExpenses(expenses.filter(e => e.id !== expenseId));
+                }
+            };
+
+            const toggleSplitPerson = (userId) => {
+                if (expenseSplitBetween.includes(userId)) {
+                    setExpenseSplitBetween(expenseSplitBetween.filter(id => id !== userId));
+                } else {
+                    setExpenseSplitBetween([...expenseSplitBetween, userId]);
+                }
+            };
+
+            const selectAllForSplit = () => {
+                if (expenseSplitBetween.length === users.length) {
+                    setExpenseSplitBetween([]);
+                } else {
+                    setExpenseSplitBetween(users.map(u => u.id));
+                }
+            };
+
+            // Calculate balances
+            const calculateBalances = () => {
+                const balances = {};
+                
+                // Initialize balances
+                users.forEach(user => {
+                    balances[user.id] = 0;
+                });
+
+                // Calculate for each expense
+                expenses.forEach(expense => {
+                    const sharePerPerson = expense.amount / expense.splitBetween.length;
+                    
+                    // Person who paid gets credited
+                    balances[expense.paidBy] += expense.amount;
+                    
+                    // Everyone in the split gets debited their share
+                    expense.splitBetween.forEach(userId => {
+                        balances[userId] -= sharePerPerson;
+                    });
+                });
+
+                return balances;
+            };
+
+            // Calculate settlements
+            const calculateSettlements = () => {
+                const balances = calculateBalances();
+                const settlements = [];
+
+                // Create arrays of people who owe and are owed
+                const owes = [];
+                const owed = [];
+
+                Object.entries(balances).forEach(([userId, balance]) => {
+                    const user = users.find(u => u.id === parseInt(userId));
+                    if (balance < -0.01) {
+                        owes.push({ user, amount: Math.abs(balance) });
+                    } else if (balance > 0.01) {
+                        owed.push({ user, amount: balance });
+                    }
+                });
+
+                // Sort by amount
+                owes.sort((a, b) => b.amount - a.amount);
+                owed.sort((a, b) => b.amount - a.amount);
+
+                // Calculate settlements
+                let i = 0, j = 0;
+                while (i < owes.length && j < owed.length) {
+                    const transferAmount = Math.min(owes[i].amount, owed[j].amount);
+                    
+                    settlements.push({
+                        from: owes[i].user,
+                        to: owed[j].user,
+                        amount: transferAmount
+                    });
+
+                    owes[i].amount -= transferAmount;
+                    owed[j].amount -= transferAmount;
+
+                    if (owes[i].amount < 0.01) i++;
+                    if (owed[j].amount < 0.01) j++;
+                }
+
+                return settlements;
+            };
+
+            const balances = calculateBalances();
+            const settlements = calculateSettlements();
+            const totalExpenses = expenses.reduce((sum, exp) => sum + exp.amount, 0);
+
+            const getUserName = (userId) => {
+                const user = users.find(u => u.id === userId);
+                return user ? user.name : 'Unknown';
+            };
+
+            const getUserColor = (userId) => {
+                const user = users.find(u => u.id === userId);
+                return user ? user.color : '#667eea';
+            };
+
+            const formatCurrency = (amount) => {
+                return '₹' + amount.toFixed(2);
+            };
+
+            const formatDate = (dateString) => {
+                const date = new Date(dateString);
+                return date.toLocaleDateString('en-IN', { day: 'numeric', month: 'short', year: 'numeric' });
+            };
+
+            return (
+                <div className="app-container min-h-screen py-8 px-4">
+                    <div className="max-w-6xl mx-auto">
+                        {/* Header */}
+                        <div className="text-center mb-8">
+                            <h1 className="logo-text mb-2">🏖️ Mehhh Goa Trip Splitter</h1>
+                            <p className="text-white text-lg font-light">Split expenses, settle up, enjoy the trip!</p>
+                        </div>
+
+                        {/* Tab Navigation */}
+                        <div className="flex justify-center gap-4 mb-8">
+                            <button 
+                                className={`tab-button ${activeTab === 'dashboard' ? 'active' : ''}`}
+                                onClick={() => setActiveTab('dashboard')}
+                            >
+                                Dashboard
+                            </button>
+                            <button 
+                                className={`tab-button ${activeTab === 'expenses' ? 'active' : ''}`}
+                                onClick={() => setActiveTab('expenses')}
+                            >
+                                Expenses
+                            </button>
+                            <button 
+                                className={`tab-button ${activeTab === 'settle' ? 'active' : ''}`}
+                                onClick={() => setActiveTab('settle')}
+                            >
+                                Settle Up
+                            </button>
+                        </div>
+
+                        {/* Dashboard Tab */}
+                        {activeTab === 'dashboard' && (
+                            <div className="space-y-6">
+                                {/* Add Users Section */}
+                                <div className="card p-6">
+                                    <h2 className="text-2xl font-bold mb-4 text-gray-800">Trip Members</h2>
+                                    
+                                    <div className="flex gap-3 mb-4">
+                                        <input
+                                            type="text"
+                                            className="input-field flex-1"
+                                            placeholder="Enter name..."
+                                            value={newUserName}
+                                            onChange={(e) => setNewUserName(e.target.value)}
+                                            onKeyPress={(e) => e.key === 'Enter' && addUser()}
+                                        />
+                                        <button className="btn-primary" onClick={addUser}>
+                                            Add Member
+                                        </button>
+                                    </div>
+
+                                    {users.length === 0 ? (
+                                        <p className="text-gray-500 text-center py-8">Add members to start tracking expenses</p>
+                                    ) : (
+                                        <div className="flex flex-wrap gap-3">
+                                            {users.map(user => (
+                                                <div 
+                                                    key={user.id} 
+                                                    className="user-chip"
+                                                    style={{ backgroundColor: user.color }}
+                                                >
+                                                    <span>{user.name}</span>
+                                                    <button
+                                                        onClick={() => removeUser(user.id)}
+                                                        className="hover:scale-110 transition-transform"
+                                                    >
+                                                        ✕
+                                                    </button>
+                                                </div>
+                                            ))}
+                                        </div>
+                                    )}
+                                </div>
+
+                                {/* Stats */}
+                                {users.length > 0 && (
+                                    <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+                                        <div className="card stat-card">
+                                            <div className="stat-number">{users.length}</div>
+                                            <div className="stat-label">TRIP MEMBERS</div>
+                                        </div>
+                                        <div className="card stat-card">
+                                            <div className="stat-number">{expenses.length}</div>
+                                            <div className="stat-label">TOTAL EXPENSES</div>
+                                        </div>
+                                        <div className="card stat-card">
+                                            <div className="stat-number">{formatCurrency(totalExpenses)}</div>
+                                            <div className="stat-label">TOTAL SPENT</div>
+                                        </div>
+                                    </div>
+                                )}
+
+                                {/* Balances */}
+                                {users.length > 0 && expenses.length > 0 && (
+                                    <div className="card p-6">
+                                        <h2 className="text-2xl font-bold mb-4 text-gray-800">Individual Balances</h2>
+                                        <div className="space-y-3">
+                                            {users.map(user => {
+                                                const balance = balances[user.id] || 0;
+                                                const balanceClass = balance > 0.01 ? 'balance-positive' : balance < -0.01 ? 'balance-negative' : 'balance-zero';
+                                                const balanceText = balance > 0.01 ? 'gets back' : balance < -0.01 ? 'owes' : 'settled';
+                                                
+                                                return (
+                                                    <div key={user.id} className="flex items-center justify-between p-4 bg-gray-50 rounded-lg">
+                                                        <div className="flex items-center gap-3">
+                                                            <div 
+                                                                className="w-10 h-10 rounded-full flex items-center justify-center text-white font-bold"
+                                                                style={{ backgroundColor: user.color }}
+                                                            >
+                                                                {user.name[0].toUpperCase()}
+                                                            </div>
+                                                            <span className="font-semibold text-gray-800">{user.name}</span>
+                                                        </div>
+                                                        <div className={balanceClass}>
+                                                            <span className="text-sm">{balanceText}</span> {formatCurrency(Math.abs(balance))}
+                                                        </div>
+                                                    </div>
+                                                );
+                                            })}
+                                        </div>
+                                    </div>
+                                )}
+
+                                {/* Quick Action */}
+                                {users.length > 0 && (
+                                    <div className="text-center">
+                                        <button className="btn-primary text-lg px-8 py-4" onClick={openExpenseModal}>
+                                            ➕ Add New Expense
+                                        </button>
+                                    </div>
+                                )}
+                            </div>
+                        )}
+
+                        {/* Expenses Tab */}
+                        {activeTab === 'expenses' && (
+                            <div className="space-y-6">
+                                <div className="card p-6">
+                                    <div className="flex justify-between items-center mb-6">
+                                        <h2 className="text-2xl font-bold text-gray-800">All Expenses</h2>
+                                        {users.length > 0 && (
+                                            <button className="btn-secondary" onClick={openExpenseModal}>
+                                                ➕ Add Expense
+                                            </button>
+                                        )}
+                                    </div>
+
+                                    {expenses.length === 0 ? (
+                                        <p className="text-gray-500 text-center py-12">
+                                            {users.length === 0 ? 'Add members first to start tracking expenses' : 'No expenses yet. Add your first expense!'}
+                                        </p>
+                                    ) : (
+                                        <div className="space-y-3">
+                                            {[...expenses].reverse().map(expense => (
+                                                <div key={expense.id} className="expense-item p-4 bg-gray-50 rounded-lg">
+                                                    <div className="flex justify-between items-start mb-2">
+                                                        <div className="flex-1">
+                                                            <h3 className="font-bold text-lg text-gray-800">{expense.description}</h3>
+                                                            <p className="text-sm text-gray-600">
+                                                                Paid by <span className="font-semibold" style={{ color: getUserColor(expense.paidBy) }}>
+                                                                    {getUserName(expense.paidBy)}
+                                                                </span> on {formatDate(expense.date)}
+                                                            </p>
+                                                        </div>
+                                                        <div className="text-right">
+                                                            <div className="text-2xl font-bold text-gray-800">{formatCurrency(expense.amount)}</div>
+                                                            <button 
+                                                                className="btn-danger text-sm mt-2"
+                                                                onClick={() => deleteExpense(expense.id)}
+                                                            >
+                                                                Delete
+                                                            </button>
+                                                        </div>
+                                                    </div>
+                                                    <div className="flex flex-wrap gap-2 mt-3">
+                                                        <span className="text-sm text-gray-600">Split between:</span>
+                                                        {expense.splitBetween.map(userId => (
+                                                            <span 
+                                                                key={userId}
+                                                                className="text-xs px-3 py-1 rounded-full text-white font-semibold"
+                                                                style={{ backgroundColor: getUserColor(userId) }}
+                                                            >
+                                                                {getUserName(userId)}
+                                                            </span>
+                                                        ))}
+                                                    </div>
+                                                    <div className="text-sm text-gray-600 mt-2">
+                                                        {formatCurrency(expense.amount / expense.splitBetween.length)} per person
+                                                    </div>
+                                                </div>
+                                            ))}
+                                        </div>
+                                    )}
+                                </div>
+                            </div>
+                        )}
+
+                        {/* Settle Up Tab */}
+                        {activeTab === 'settle' && (
+                            <div className="space-y-6">
+                                <div className="card p-6">
+                                    <h2 className="text-2xl font-bold mb-6 text-gray-800">Settlement Plan</h2>
+
+                                    {settlements.length === 0 ? (
+                                        <div className="text-center py-12">
+                                            <div className="text-6xl mb-4">✅</div>
+                                            <p className="text-xl font-semibold text-gray-700">All Settled Up!</p>
+                                            <p className="text-gray-600 mt-2">Everyone has paid their share</p>
+                                        </div>
+                                    ) : (
+                                        <div className="space-y-4">
+                                            <p className="text-gray-600 mb-4">
+                                                Here's the simplest way to settle all expenses with minimum transactions:
+                                            </p>
+                                            {settlements.map((settlement, index) => (
+                                                <div key={index} className="settlement-card">
+                                                    <div className="flex items-center justify-between">
+                                                        <div className="flex items-center gap-3">
+                                                            <div 
+                                                                className="w-12 h-12 rounded-full flex items-center justify-center text-white font-bold text-lg"
+                                                                style={{ backgroundColor: settlement.from.color }}
+                                                            >
+                                                                {settlement.from.name[0].toUpperCase()}
+                                                            </div>
+                                                            <div>
+                                                                <div className="font-bold text-gray-800">{settlement.from.name}</div>
+                                                                <div className="text-sm text-gray-600">pays</div>
+                                                            </div>
+                                                        </div>
+                                                        
+                                                        <div className="text-center px-4">
+                                                            <div className="text-2xl font-bold text-green-600">
+                                                                {formatCurrency(settlement.amount)}
+                                                            </div>
+                                                        </div>
+
+                                                        <div className="flex items-center gap-3">
+                                                            <div className="text-right">
+                                                                <div className="text-sm text-gray-600">to</div>
+                                                                <div className="font-bold text-gray-800">{settlement.to.name}</div>
+                                                            </div>
+                                                            <div 
+                                                                className="w-12 h-12 rounded-full flex items-center justify-center text-white font-bold text-lg"
+                                                                style={{ backgroundColor: settlement.to.color }}
+                                                            >
+                                                                {settlement.to.name[0].toUpperCase()}
+                                                            </div>
+                                                        </div>
+                                                    </div>
+                                                </div>
+                                            ))}
+                                            <div className="mt-6 p-4 bg-blue-50 rounded-lg">
+                                                <p className="text-sm text-blue-800">
+                                                    💡 <strong>Tip:</strong> Only {settlements.length} transaction{settlements.length > 1 ? 's' : ''} needed to settle everything!
+                                                </p>
+                                            </div>
+                                        </div>
+                                    )}
+                                </div>
+                            </div>
+                        )}
+                    </div>
+
+                    {/* Add Expense Modal */}
+                    {showExpenseModal && (
+                        <div className="modal-overlay" onClick={() => setShowExpenseModal(false)}>
+                            <div className="modal-content" onClick={(e) => e.stopPropagation()}>
+                                <h2 className="text-2xl font-bold mb-6 text-gray-800">Add New Expense</h2>
+                                
+                                <div className="space-y-4">
+                                    <div>
+                                        <label className="block text-sm font-semibold text-gray-700 mb-2">Description</label>
+                                        <input
+                                            type="text"
+                                            className="input-field"
+                                            placeholder="e.g., Hotel booking, Dinner, etc."
+                                            value={expenseDescription}
+                                            onChange={(e) => setExpenseDescription(e.target.value)}
+                                        />
+                                    </div>
+
+                                    <div>
+                                        <label className="block text-sm font-semibold text-gray-700 mb-2">Amount (₹)</label>
+                                        <input
+                                            type="number"
+                                            className="input-field"
+                                            placeholder="0.00"
+                                            value={expenseAmount}
+                                            onChange={(e) => setExpenseAmount(e.target.value)}
+                                            step="0.01"
+                                        />
+                                    </div>
+
+                                    <div>
+                                        <label className="block text-sm font-semibold text-gray-700 mb-2">Paid by</label>
+                                        <select
+                                            className="input-field"
+                                            value={expensePaidBy}
+                                            onChange={(e) => setExpensePaidBy(parseInt(e.target.value))}
+                                        >
+                                            <option value="">Select who paid</option>
+                                            {users.map(user => (
+                                                <option key={user.id} value={user.id}>{user.name}</option>
+                                            ))}
+                                        </select>
+                                    </div>
+
+                                    <div>
+                                        <div className="flex justify-between items-center mb-2">
+                                            <label className="block text-sm font-semibold text-gray-700">Split between</label>
+                                            <button 
+                                                className="text-sm text-purple-600 font-semibold hover:text-purple-800"
+                                                onClick={selectAllForSplit}
+                                            >
+                                                {expenseSplitBetween.length === users.length ? 'Deselect All' : 'Select All'}
+                                            </button>
+                                        </div>
+                                        <div className="space-y-2 max-h-48 overflow-y-auto p-3 bg-gray-50 rounded-lg">
+                                            {users.map(user => (
+                                                <label key={user.id} className="flex items-center gap-3 cursor-pointer hover:bg-gray-100 p-2 rounded">
+                                                    <input
+                                                        type="checkbox"
+                                                        className="checkbox-custom"
+                                                        checked={expenseSplitBetween.includes(user.id)}
+                                                        onChange={() => toggleSplitPerson(user.id)}
+                                                    />
+                                                    <div 
+                                                        className="w-8 h-8 rounded-full flex items-center justify-center text-white font-bold text-sm"
+                                                        style={{ backgroundColor: user.color }}
+                                                    >
+                                                        {user.name[0].toUpperCase()}
+                                                    </div>
+                                                    <span className="font-medium text-gray-800">{user.name}</span>
+                                                </label>
+                                            ))}
+                                        </div>
+                                        {expenseSplitBetween.length > 0 && expenseAmount && (
+                                            <p className="text-sm text-gray-600 mt-2">
+                                                {formatCurrency(parseFloat(expenseAmount) / expenseSplitBetween.length)} per person
+                                            </p>
+                                        )}
+                                    </div>
+
+                                    <div className="flex gap-3 pt-4">
+                                        <button 
+                                            className="btn-primary flex-1"
+                                            onClick={addExpense}
+                                        >
+                                            Add Expense
+                                        </button>
+                                        <button 
+                                            className="btn-danger flex-1"
+                                            onClick={() => setShowExpenseModal(false)}
+                                        >
+                                            Cancel
+                                        </button>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+                    )}
+                </div>
+            );
+        }
+
+        ReactDOM.render(<GoaTripSplitter />, document.getElementById('root'));
+    </script>
+</body>
+</html>
