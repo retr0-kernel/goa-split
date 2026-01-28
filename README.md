@@ -1,1 +1,1 @@
-# goa-split
+# trip-split
