@@ -249,19 +249,19 @@
 
         .stat-card:hover {
             box-shadow: var(--shadow-md);
-        }       
+        }
 
         .stat-number {
             font-size: 2.5rem;
             font-weight: 800;
             color: var(--accent-primary);
-    margin-bottom: 0.5rem;
-}
+            margin-bottom: 0.5rem;
+        }
 
-.stat-label {
-    font-size: 1rem;
-    color: var(--text-secondary);
-    font-weight: 600;
+        .stat-label {
+            font-size: 1rem;
+            color: var(--text-secondary);
+            font-weight: 600;
             text-transform: uppercase;
             letter-spacing: 0.5px;
         }
@@ -532,13 +532,13 @@
         ];
 
         // Default email template
-        const DEFAULT_EMAIL_TEMPLATE = `Subject: Friendly Reminder: Money Settlement
+        const DEFAULT_EMAIL_TEMPLATE = `Subject: Friendly Reminder: Trip Settlement
 
 Hi [Name],
 
-Hope you had a great time! This is a friendly reminder about settling up the expenses.
+Hope you had a great time on our trip! This is a friendly reminder about settling up the expenses.
 
-According to our expense tracker, you [owe/are owed] ₹[Amount].
+According to our trip expense tracker, you [owe/are owed] ₹[Amount].
 
 [Settlement Details]
 
@@ -550,6 +550,7 @@ Thanks!
         function TripSplitter() {
             const [users, setUsers] = useState([]);
             const [expenses, setExpenses] = useState([]);
+            const [settledTransactions, setSettledTransactions] = useState([]);
             const [newUserName, setNewUserName] = useState('');
             const [activeTab, setActiveTab] = useState('dashboard');
             const [showExpenseModal, setShowExpenseModal] = useState(false);
@@ -579,6 +580,7 @@ Thanks!
             useEffect(() => {
                 const savedUsers = localStorage.getItem('goaTripUsers');
                 const savedExpenses = localStorage.getItem('goaTripExpenses');
+                const savedSettled = localStorage.getItem('goaTripSettled');
                 const savedTheme = localStorage.getItem('tripSplitterTheme');
                 
                 if (savedUsers) {
@@ -594,6 +596,7 @@ Thanks!
                 }
                 
                 if (savedExpenses) setExpenses(JSON.parse(savedExpenses));
+                if (savedSettled) setSettledTransactions(JSON.parse(savedSettled));
                 if (savedTheme) setDarkMode(savedTheme === 'dark');
             }, []);
 
@@ -610,6 +613,11 @@ Thanks!
                     localStorage.setItem('goaTripExpenses', JSON.stringify(expenses));
                 }
             }, [expenses]);
+
+            // Save settled transactions to localStorage
+            useEffect(() => {
+                localStorage.setItem('goaTripSettled', JSON.stringify(settledTransactions));
+            }, [settledTransactions]);
 
             // Apply theme
             useEffect(() => {
@@ -849,9 +857,105 @@ Thanks!
                 return settlements;
             };
 
+            const toggleSettlement = (settlement) => {
+                const key = `${settlement.from.id}-${settlement.to.id}-${settlement.amount}`;
+                if (settledTransactions.includes(key)) {
+                    setSettledTransactions(settledTransactions.filter(s => s !== key));
+                } else {
+                    setSettledTransactions([...settledTransactions, key]);
+                }
+            };
+
+            const isSettlementDone = (settlement) => {
+                const key = `${settlement.from.id}-${settlement.to.id}-${settlement.amount}`;
+                return settledTransactions.includes(key);
+            };
+
+            // Calculate adjusted balances (accounting for settled transactions)
+            const calculateAdjustedBalances = () => {
+                const baseBalances = calculateBalances();
+                const adjustedBalances = { ...baseBalances };
+
+                // Apply settled transactions
+                const allSettlements = calculateSettlements();
+                allSettlements.forEach(settlement => {
+                    if (isSettlementDone(settlement)) {
+                        adjustedBalances[settlement.from.id] += settlement.amount;
+                        adjustedBalances[settlement.to.id] -= settlement.amount;
+                    }
+                });
+
+                return adjustedBalances;
+            };
+
             const balances = calculateBalances();
+            const adjustedBalances = calculateAdjustedBalances();
             const settlements = calculateSettlements();
             const totalExpenses = expenses.reduce((sum, exp) => sum + exp.amount, 0);
+
+            // Export to Pivot Table (Excel)
+            const exportToPivot = () => {
+                if (expenses.length === 0) {
+                    alert('No expenses to export!');
+                    return;
+                }
+
+                const wb = XLSX.utils.book_new();
+
+                // Create pivot-style data
+                const pivotData = [];
+                
+                // Header row with all users
+                const header = ['Expense', 'Date', 'Paid By', 'Total Amount'];
+                users.forEach(user => header.push(user.name));
+                pivotData.push(header);
+
+                // Data rows
+                expenses.forEach(expense => {
+                    const row = [
+                        expense.description,
+                        formatDate(expense.date),
+                        getUserName(expense.paidBy),
+                        expense.amount
+                    ];
+                    
+                    // Add each user's share
+                    users.forEach(user => {
+                        if (expense.splitBetween.includes(user.id)) {
+                            row.push(expense.amount / expense.splitBetween.length);
+                        } else {
+                            row.push(0);
+                        }
+                    });
+                    
+                    pivotData.push(row);
+                });
+
+                // Add totals row
+                const totalsRow = ['TOTAL', '', '', totalExpenses];
+                users.forEach(user => {
+                    let userTotal = 0;
+                    expenses.forEach(expense => {
+                        if (expense.splitBetween.includes(user.id)) {
+                            userTotal += expense.amount / expense.splitBetween.length;
+                        }
+                    });
+                    totalsRow.push(userTotal);
+                });
+                pivotData.push(totalsRow);
+
+                // Add balance row
+                const balanceRow = ['NET BALANCE', '', '', ''];
+                users.forEach(user => {
+                    balanceRow.push(balances[user.id] || 0);
+                });
+                pivotData.push(balanceRow);
+
+                const pivotSheet = XLSX.utils.aoa_to_sheet(pivotData);
+                XLSX.utils.book_append_sheet(wb, pivotSheet, "Pivot Table");
+
+                XLSX.writeFile(wb, "trip_expenses_pivot.xlsx");
+            };
 
             // Export functions (keeping same as before)
             const exportToCSV = () => {
@@ -1091,6 +1195,7 @@ Thanks!
                                             if (confirm('⚠️ Are you sure you want to clear all data? This will delete all members and expenses permanently. This action cannot be undone.')) {
                                                 localStorage.removeItem('goaTripUsers');
                                                 localStorage.removeItem('goaTripExpenses');
+                                                localStorage.removeItem('goaTripSettled');
                                                 window.location.reload();
                                             }
                                         }}
@@ -1195,7 +1300,7 @@ Thanks!
                                         <h2 style={{ fontSize: '1.25rem', fontWeight: '700', marginBottom: '1rem' }}>Individual Balances</h2>
                                         <div style={{ display: 'flex', flexDirection: 'column', gap: '0.75rem' }}>
                                             {users.map(user => {
-                                                const balance = balances[user.id] || 0;
+                                                const balance = adjustedBalances[user.id] || 0;
                                                 const balanceClass = balance > 0.01 ? 'balance-positive' : balance < -0.01 ? 'balance-negative' : 'balance-zero';
                                                 const balanceText = balance > 0.01 ? 'gets back' : balance < -0.01 ? 'owes' : 'settled';
                                                 
@@ -1350,42 +1455,61 @@ Thanks!
                                                 Here's the simplest way to settle all expenses with minimum transactions:
                                             </p>
                                             <div style={{ display: 'flex', flexDirection: 'column', gap: '1rem' }}>
-                                                {settlements.map((settlement, index) => (
-                                                    <div key={index} className="settlement-card">
-                                                        <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', flexWrap: 'wrap', gap: '1rem' }}>
-                                                            <div style={{ display: 'flex', alignItems: 'center', gap: '1rem' }}>
-                                                                <div className="avatar" style={{ backgroundColor: settlement.from.color }}>
-                                                                    {settlement.from.name[0].toUpperCase()}
+                                                {settlements.map((settlement, index) => {
+                                                    const isDone = isSettlementDone(settlement);
+                                                    return (
+                                                        <div key={index} className="settlement-card" style={{ opacity: isDone ? 0.6 : 1 }}>
+                                                            <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', flexWrap: 'wrap', gap: '1rem' }}>
+                                                                <div style={{ display: 'flex', alignItems: 'center', gap: '1rem' }}>
+                                                                    <input
+                                                                        type="checkbox"
+                                                                        className="checkbox-custom"
+                                                                        checked={isDone}
+                                                                        onChange={() => toggleSettlement(settlement)}
+                                                                        title="Mark as paid"
+                                                                    />
+                                                                    <div className="avatar" style={{ backgroundColor: settlement.from.color }}>
+                                                                        {settlement.from.name[0].toUpperCase()}
+                                                                    </div>
+                                                                    <div>
+                                                                        <div style={{ fontWeight: '700', fontSize: '1rem', textDecoration: isDone ? 'line-through' : 'none' }}>
+                                                                            {settlement.from.name}
+                                                                        </div>
+                                                                        <div style={{ fontSize: '0.75rem', color: 'var(--text-secondary)' }}>pays</div>
+                                                                    </div>
                                                                 </div>
-                                                                <div>
-                                                                    <div style={{ fontWeight: '700', fontSize: '1rem' }}>{settlement.from.name}</div>
-                                                                    <div style={{ fontSize: '0.75rem', color: 'var(--text-secondary)' }}>pays</div>
-                                                                </div>
-                                                            </div>
-                                                            
-                                                            <div style={{ textAlign: 'center', padding: '0 1rem' }}>
-                                                                <div style={{ fontSize: '1.5rem', fontWeight: '700', color: 'var(--success)' }}>
-                                                                    {formatCurrency(settlement.amount)}
-                                                                </div>
-                                                            </div>
-
-                                                            <div style={{ display: 'flex', alignItems: 'center', gap: '1rem' }}>
-                                                                <div style={{ textAlign: 'right' }}>
-                                                                    <div style={{ fontSize: '0.75rem', color: 'var(--text-secondary)' }}>to</div>
-                                                                    <div style={{ fontWeight: '700', fontSize: '1rem' }}>{settlement.to.name}</div>
-                                                                    {settlement.to.upi && (
-                                                                        <div style={{ fontSize: '0.75rem', color: 'var(--text-tertiary)' }}>
-                                                                            UPI: {settlement.to.upi}
+                                                                
+                                                                <div style={{ textAlign: 'center', padding: '0 1rem' }}>
+                                                                    <div style={{ fontSize: '1.5rem', fontWeight: '700', color: 'var(--success)', textDecoration: isDone ? 'line-through' : 'none' }}>
+                                                                        {formatCurrency(settlement.amount)}
+                                                                    </div>
+                                                                    {isDone && (
+                                                                        <div style={{ fontSize: '0.75rem', color: 'var(--success)', fontWeight: '600', marginTop: '0.25rem' }}>
+                                                                            ✓ Paid
                                                                         </div>
                                                                     )}
                                                                 </div>
-                                                                <div className="avatar" style={{ backgroundColor: settlement.to.color }}>
-                                                                    {settlement.to.name[0].toUpperCase()}
+
+                                                                <div style={{ display: 'flex', alignItems: 'center', gap: '1rem' }}>
+                                                                    <div style={{ textAlign: 'right' }}>
+                                                                        <div style={{ fontSize: '0.75rem', color: 'var(--text-secondary)' }}>to</div>
+                                                                        <div style={{ fontWeight: '700', fontSize: '1rem', textDecoration: isDone ? 'line-through' : 'none' }}>
+                                                                            {settlement.to.name}
+                                                                        </div>
+                                                                        {settlement.to.upi && (
+                                                                            <div style={{ fontSize: '0.75rem', color: 'var(--text-tertiary)' }}>
+                                                                                UPI: {settlement.to.upi}
+                                                                            </div>
+                                                                        )}
+                                                                    </div>
+                                                                    <div className="avatar" style={{ backgroundColor: settlement.to.color }}>
+                                                                        {settlement.to.name[0].toUpperCase()}
+                                                                    </div>
                                                                 </div>
                                                             </div>
                                                         </div>
-                                                    </div>
-                                                ))}
+                                                    );
+                                                })}
                                             </div>
                                             <div style={{ 
                                                 marginTop: '1.5rem', 
@@ -1421,7 +1545,7 @@ Thanks!
                                         </div>
                                     ) : (
                                         <>
-                                            <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(250px, 1fr))', gap: '1.5rem' }}>
+                                            <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(220px, 1fr))', gap: '1.5rem' }}>
                                                 <div className="export-card" onClick={exportToPDF}>
                                                     <div className="export-icon">📄</div>
                                                     <h3 style={{ fontSize: '1.125rem', fontWeight: '700', marginBottom: '0.5rem' }}>Export to PDF</h3>
@@ -1452,6 +1576,17 @@ Thanks!
                                                     </p>
                                                     <div className="btn btn-primary" style={{ display: 'inline-flex' }}>
                                                         Download Excel
+                                                    </div>
+                                                </div>
+
+                                                <div className="export-card" onClick={exportToPivot}>
+                                                    <div className="export-icon">📋</div>
+                                                    <h3 style={{ fontSize: '1.125rem', fontWeight: '700', marginBottom: '0.5rem' }}>Pivot Table</h3>
+                                                    <p style={{ color: 'var(--text-secondary)', fontSize: '0.875rem', marginBottom: '1rem' }}>
+                                                        Expense matrix view
+                                                    </p>
+                                                    <div className="btn btn-primary" style={{ display: 'inline-flex' }}>
+                                                        Download Pivot
                                                     </div>
                                                 </div>
                                             </div>
